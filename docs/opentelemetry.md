@@ -34,8 +34,15 @@ Cada serviço define:
 - `service.name`
 - `service.namespace=ecommerce`
 - `deployment.environment.name=kind-lab`
+- `shop.name=shagohod-shop`
 
 Esses atributos são essenciais para filtrar no Grafana e para agrupar métricas derivadas de spans.
+
+## Sessão da loja
+
+O frontend cria um cookie `shop_session_id` e propaga esse valor no header `x-shop-session-id`. Os serviços gravam esse valor como `shop.session_id` nos spans e logs.
+
+Isso permite investigar uma jornada inteira da Shagohod Shop sem depender apenas do `trace_id`, já que uma sessão pode gerar vários traces.
 
 ## Banco de dados
 

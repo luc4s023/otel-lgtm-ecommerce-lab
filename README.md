@@ -2,9 +2,11 @@
 
 Este projeto cria um laboratório local de observabilidade distribuída com Kubernetes Kind, OpenTelemetry Collector e stack LGTM: Grafana, Loki, Tempo e Mimir.
 
-O cenário é uma loja virtual simplificada com quatro microserviços em linguagens diferentes:
+O cenário é a **Shagohod Shop**, uma loja virtual fan-made com estética tática/jungle-tech inspirada em Metal Gear Solid Delta. Ela vende unidades fictícias de Metal Gear como itens de catálogo e existe para gerar telemetria real em uma jornada de compra simples.
 
-- `frontend` em Go: entrada da aplicação.
+A implementação usa quatro microserviços em linguagens diferentes:
+
+- `frontend` em Go: UI web da Shagohod Shop, sessão por cookie, carrinho local e entrada da aplicação.
 - `catalog` em Python/FastAPI: produtos e consultas ao PostgreSQL.
 - `checkout` em Ruby/Sinatra: orquestra a compra.
 - `inventory` em Go: estoque, queries no PostgreSQL e falhas controladas.
@@ -39,6 +41,15 @@ Acesse:
 - Grafana: http://localhost:3000 (`admin` / `admin`)
 - Frontend: http://localhost:8080
 
+Na loja, use os botões da vitrine para:
+
+- listar produtos e estoque;
+- adicionar unidades ao carrinho;
+- executar checkout aprovado;
+- disparar produto sem estoque;
+- simular latência;
+- gerar erro controlado.
+
 ## Comandos principais
 
 ```bash
@@ -62,6 +73,8 @@ cliente -> frontend -> catalog -> PostgreSQL
                               \-> inventory -> PostgreSQL
 ```
 
+O frontend cria um cookie `shop_session_id` e propaga esse valor como `x-shop-session-id` entre os serviços. Esse ID aparece nos logs e spans como `shop.session_id`, facilitando a investigação de uma sessão completa no Grafana.
+
 Fluxo de telemetria:
 
 ```text
@@ -77,4 +90,3 @@ apps/PostgreSQL exporter -> OpenTelemetry Collector -> Tempo/Loki/Mimir -> Grafa
 - [RED metrics](docs/red-metrics.md)
 - [Grafana](docs/grafana.md)
 - [Troubleshooting](docs/troubleshooting.md)
-

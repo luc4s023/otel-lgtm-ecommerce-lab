@@ -11,9 +11,10 @@ for i in $(seq 1 "${ROUNDS}"); do
   echo "Rodada ${i}/${ROUNDS}"
   for path in \
     "/shop" \
-    "/checkout?product_id=sku-astro-mug" \
-    "/checkout?product_id=sku-otel-shirt&slow=true" \
-    "/checkout?product_id=sku-kind-sticker" \
+    "/api/products" \
+    "/checkout?product_id=sku-rex" \
+    "/checkout?product_id=sku-ray&slow=true" \
+    "/checkout?product_id=sku-sahelanthropus" \
     "/error-demo"; do
     status="$(curl -sS -o /dev/null -w "%{http_code}" "${FRONTEND_URL}${path}" || true)"
     printf "  %-45s %s\n" "${path}" "${status}"

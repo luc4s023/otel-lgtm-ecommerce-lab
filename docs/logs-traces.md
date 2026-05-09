@@ -3,6 +3,8 @@
 Os serviços escrevem logs JSON no stdout com estes campos:
 
 - `service.name`
+- `shop.name`
+- `shop.session_id`
 - `event`
 - `message`
 - `trace_id`
@@ -27,6 +29,14 @@ Para buscar um trace específico:
 ```logql
 {service_name=~"frontend|catalog|checkout|inventory"} | json | trace_id="COLE_O_TRACE_ID"
 ```
+
+Para investigar uma sessão da Shagohod Shop:
+
+```logql
+{service_name=~"frontend|catalog|checkout|inventory"} | json | shop_session_id="COLE_O_SHOP_SESSION_ID"
+```
+
+O valor da sessão aparece no topo da UI e também no cookie `shop_session_id`.
 
 ## Trade-off
 

@@ -37,6 +37,12 @@ Chamadas de banco observadas por spans:
 sum by (span_name) (rate(traces_spanmetrics_calls_total{span_name=~"db.*"}[1m]))
 ```
 
+Rotas do frontend da Shagohod Shop:
+
+```promql
+sum by (span_name) (rate(traces_spanmetrics_calls_total{service_name="frontend"}[1m]))
+```
+
 ## Por que derivar de traces?
 
 Derivar RED de traces é útil em laboratório porque cada request pode ser inspecionada em detalhe no Tempo e agregada em métricas no Mimir. Em produção, você pode combinar essa técnica com métricas nativas de aplicação para reduzir cardinalidade e controlar custo.

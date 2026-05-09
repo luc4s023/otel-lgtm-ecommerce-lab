@@ -27,18 +27,27 @@ data:
       quantity INTEGER NOT NULL
     );
 
+    DELETE FROM inventory WHERE product_id IN ('sku-astro-mug', 'sku-otel-shirt', 'sku-kind-sticker');
+    DELETE FROM products WHERE id IN ('sku-astro-mug', 'sku-otel-shirt', 'sku-kind-sticker');
+
     INSERT INTO products (id, name, price_cents) VALUES
-      ('sku-astro-mug', 'Caneca Astronomy Shop', 4990),
-      ('sku-otel-shirt', 'Camiseta OpenTelemetry', 8990),
-      ('sku-kind-sticker', 'Adesivo Kind Kubernetes', 1290)
+      ('sku-shagohod', 'Shagohod', 49900000),
+      ('sku-tx-55', 'Metal Gear TX-55', 24900000),
+      ('sku-metal-gear-d', 'Metal Gear D', 32900000),
+      ('sku-rex', 'Metal Gear REX', 79900000),
+      ('sku-ray', 'Metal Gear RAY', 69900000),
+      ('sku-sahelanthropus', 'Sahelanthropus', 99900000)
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
       price_cents = EXCLUDED.price_cents;
 
     INSERT INTO inventory (product_id, quantity) VALUES
-      ('sku-astro-mug', 7),
-      ('sku-otel-shirt', 2),
-      ('sku-kind-sticker', 0)
+      ('sku-shagohod', 3),
+      ('sku-tx-55', 4),
+      ('sku-metal-gear-d', 2),
+      ('sku-rex', 5),
+      ('sku-ray', 6),
+      ('sku-sahelanthropus', 0)
     ON CONFLICT (product_id) DO UPDATE SET quantity = EXCLUDED.quantity;
 ---
 apiVersion: v1
@@ -139,3 +148,55 @@ spec:
           env:
             - name: DATA_SOURCE_NAME
               value: postgresql://shop:shop@postgres.ecommerce.svc.cluster.local:5432/shop?sslmode=disable
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: postgres-seed-shagohod
+  namespace: ecommerce
+spec:
+  backoffLimit: 6
+  template:
+    metadata:
+      labels:
+        app: postgres-seed-shagohod
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: seed
+          image: postgres:16-alpine
+          env:
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+          command:
+            - sh
+            - -c
+            - |
+              until pg_isready -h postgres.ecommerce.svc.cluster.local -U shop -d shop; do sleep 2; done
+              psql -h postgres.ecommerce.svc.cluster.local -U shop -d shop <<'SQL'
+              DELETE FROM inventory WHERE product_id IN ('sku-astro-mug', 'sku-otel-shirt', 'sku-kind-sticker');
+              DELETE FROM products WHERE id IN ('sku-astro-mug', 'sku-otel-shirt', 'sku-kind-sticker');
+
+              INSERT INTO products (id, name, price_cents) VALUES
+                ('sku-shagohod', 'Shagohod', 49900000),
+                ('sku-tx-55', 'Metal Gear TX-55', 24900000),
+                ('sku-metal-gear-d', 'Metal Gear D', 32900000),
+                ('sku-rex', 'Metal Gear REX', 79900000),
+                ('sku-ray', 'Metal Gear RAY', 69900000),
+                ('sku-sahelanthropus', 'Sahelanthropus', 99900000)
+              ON CONFLICT (id) DO UPDATE SET
+                name = EXCLUDED.name,
+                price_cents = EXCLUDED.price_cents;
+
+              INSERT INTO inventory (product_id, quantity) VALUES
+                ('sku-shagohod', 3),
+                ('sku-tx-55', 4),
+                ('sku-metal-gear-d', 2),
+                ('sku-rex', 5),
+                ('sku-ray', 6),
+                ('sku-sahelanthropus', 0)
+              ON CONFLICT (product_id) DO UPDATE SET quantity = EXCLUDED.quantity;
+              SQL

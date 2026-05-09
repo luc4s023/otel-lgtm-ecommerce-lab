@@ -1,10 +1,10 @@
 # Arquitetura
 
-O laboratório representa uma loja virtual pequena. Ele não tenta ser uma cópia completa da OpenTelemetry Demo; a ideia é manter poucos serviços, mas garantir que cada conceito importante apareça.
+O laboratório representa a **Shagohod Shop**, uma loja virtual pequena com estética fan-made tática/jungle-tech. Ele não tenta ser uma cópia completa da OpenTelemetry Demo; a ideia é manter poucos serviços, mas garantir que cada conceito importante apareça.
 
 ```mermaid
 flowchart LR
-  U[Usuário ou load/generate-load.sh] --> FE[frontend<br/>Go]
+  U[Usuário ou load/generate-load.sh] --> FE[frontend<br/>Go<br/>Shagohod Shop UI]
   FE --> CAT[catalog<br/>Python/FastAPI]
   FE --> CHK[checkout<br/>Ruby/Sinatra]
   CHK --> CAT
@@ -40,7 +40,11 @@ flowchart LR
 
 ## Fluxos importantes
 
-- `/shop`: `frontend` chama `catalog`, e `catalog` consulta PostgreSQL.
-- `/checkout`: `frontend` chama `checkout`, que chama `catalog` e `inventory`.
-- `/error-demo`: força pagamento recusado e produto sem estoque para gerar traces com erro.
+- `/`: renderiza a vitrine visual da Shagohod Shop.
+- `/api/products`: `frontend` chama `catalog` e `inventory` para montar a vitrine com estoque.
+- `/api/cart`: registra ação de carrinho e gera logs/spans com `shop.session_id`.
+- `/api/checkout`: executa checkout real via `checkout`, que chama `catalog` e `inventory`.
+- `/error-demo`: força pagamento recusado para gerar traces com erro.
 - `?slow=true`: injeta latência no `inventory` para aparecer em duration e p95.
+
+O cookie `shop_session_id` é propagado internamente como `x-shop-session-id` e gravado como atributo `shop.session_id`.

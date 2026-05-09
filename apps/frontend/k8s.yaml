@@ -41,6 +41,8 @@ spec:
               value: http://catalog.ecommerce.svc.cluster.local:8080
             - name: CHECKOUT_URL
               value: http://checkout.ecommerce.svc.cluster.local:8080
+            - name: INVENTORY_URL
+              value: http://inventory.ecommerce.svc.cluster.local:8080
           readinessProbe:
             httpGet:
               path: /healthz

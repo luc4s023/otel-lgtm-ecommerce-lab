@@ -26,3 +26,23 @@ Use Explore para treinar investigações:
 O datasource Loki tem derived field para `trace_id`. Quando um log possui esse campo, Grafana consegue abrir o trace correspondente no Tempo.
 
 O datasource Tempo também aponta para Loki, permitindo procurar logs relacionados a um trace.
+
+## Queries da Shagohod Shop
+
+Logs por sessão:
+
+```logql
+{service_name=~"frontend|catalog|checkout|inventory"} | json | shop_session_id="COLE_O_SHOP_SESSION_ID"
+```
+
+Erros por produto:
+
+```logql
+{service_name=~"frontend|checkout|inventory"} | json | product_id != "" | status >= 400
+```
+
+RED metrics do frontend:
+
+```promql
+sum by (span_name) (rate(traces_spanmetrics_calls_total{service_name="frontend"}[1m]))
+```

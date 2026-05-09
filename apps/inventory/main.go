@@ -50,35 +50,40 @@ func main() {
 func inventory(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	productID := r.URL.Path[len("/inventory/"):]
+	sessionID := r.Header.Get("x-shop-session-id")
+	span := trace.SpanFromContext(ctx)
+	span.SetAttributes(attribute.String("shop.name", "shagohod-shop"), attribute.String("shop.session_id", sessionID), attribute.String("product.id", productID))
 	if r.URL.Query().Get("slow") == "true" {
 		time.Sleep(850 * time.Millisecond)
 	}
 	if r.URL.Query().Get("force_error") == "true" {
 		err := errors.New("falha controlada de inventory")
-		trace.SpanFromContext(ctx).RecordError(err)
-		trace.SpanFromContext(ctx).SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
-		logEvent(ctx, "inventory-error", err.Error(), map[string]any{"product_id": productID})
+		logEvent(ctx, "inventory-error", err.Error(), sessionID, map[string]any{"product_id": productID})
 		return
 	}
 
-	quantity, err := queryQuantity(ctx, productID)
+	quantity, err := queryQuantity(ctx, productID, sessionID)
 	if err != nil {
-		trace.SpanFromContext(ctx).RecordError(err)
-		trace.SpanFromContext(ctx).SetStatus(codes.Error, err.Error())
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		http.Error(w, err.Error(), http.StatusNotFound)
-		logEvent(ctx, "inventory-miss", err.Error(), map[string]any{"product_id": productID})
+		logEvent(ctx, "inventory-miss", err.Error(), sessionID, map[string]any{"product_id": productID})
 		return
 	}
 
 	writeJSON(w, map[string]any{"product_id": productID, "quantity": quantity, "available": quantity > 0})
-	logEvent(ctx, "inventory-hit", "estoque consultado", map[string]any{"product_id": productID, "quantity": quantity})
+	logEvent(ctx, "inventory-hit", "estoque consultado", sessionID, map[string]any{"product_id": productID, "quantity": quantity})
 }
 
-func queryQuantity(ctx context.Context, productID string) (int, error) {
+func queryQuantity(ctx context.Context, productID string, sessionID string) (int, error) {
 	ctx, span := tracer.Start(ctx, "db.inventory.select",
 		trace.WithAttributes(
 			semconv.DBSystemPostgreSQL,
+			attribute.String("shop.name", "shagohod-shop"),
+			attribute.String("shop.session_id", sessionID),
 			attribute.String("db.name", "shop"),
 			attribute.String("db.operation", "SELECT"),
 			attribute.String("db.sql.table", "inventory"),
@@ -106,7 +111,7 @@ func setupOTel(ctx context.Context, service string) func() {
 		log.Fatal(err)
 	}
 	res, err := resource.New(ctx,
-		resource.WithAttributes(semconv.ServiceName(service), attribute.String("deployment.environment.name", "kind-lab"), attribute.String("service.namespace", "ecommerce")),
+		resource.WithAttributes(semconv.ServiceName(service), attribute.String("deployment.environment.name", "kind-lab"), attribute.String("service.namespace", "ecommerce"), attribute.String("shop.name", "shagohod-shop")),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -121,9 +126,9 @@ func setupOTel(ctx context.Context, service string) func() {
 	}
 }
 
-func logEvent(ctx context.Context, event string, message string, fields map[string]any) {
+func logEvent(ctx context.Context, event string, message string, sessionID string, fields map[string]any) {
 	sc := trace.SpanContextFromContext(ctx)
-	entry := map[string]any{"timestamp": time.Now().Format(time.RFC3339Nano), "service.name": "inventory", "event": event, "message": message, "trace_id": sc.TraceID().String(), "span_id": sc.SpanID().String()}
+	entry := map[string]any{"timestamp": time.Now().Format(time.RFC3339Nano), "service.name": "inventory", "shop.name": "shagohod-shop", "shop.session_id": sessionID, "event": event, "message": message, "trace_id": sc.TraceID().String(), "span_id": sc.SpanID().String()}
 	for k, v := range fields {
 		entry[k] = v
 	}
