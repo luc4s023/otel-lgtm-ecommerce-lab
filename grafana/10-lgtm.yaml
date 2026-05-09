@@ -236,6 +236,137 @@ data:
         }
       ]
     }
+  shop-performance.json: |
+    {
+      "uid": "shagohod-performance",
+      "title": "Shagohod Shop - Service Performance",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "10s",
+      "tags": ["shagohod-shop", "opentelemetry", "services", "performance"],
+      "time": {"from": "now-30m", "to": "now"},
+      "templating": {
+        "list": [
+          {
+            "name": "service",
+            "type": "query",
+            "datasource": {"uid": "mimir"},
+            "query": "label_values(traces_spanmetrics_calls_total, service_name)",
+            "refresh": 1,
+            "includeAll": true,
+            "multi": true,
+            "current": {"selected": true, "text": "All", "value": "$__all"}
+          }
+        ]
+      },
+      "panels": [
+        {
+          "type": "stat",
+          "title": "Requests/s da loja",
+          "gridPos": {"x": 0, "y": 0, "w": 6, "h": 4},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "sum(rate(traces_spanmetrics_calls_total{service_name=~\"$service\"}[5m]))", "legendFormat": "rps"}],
+          "fieldConfig": {"defaults": {"unit": "reqps", "decimals": 2}, "overrides": []}
+        },
+        {
+          "type": "stat",
+          "title": "Erros/s",
+          "gridPos": {"x": 6, "y": 0, "w": 6, "h": 4},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "sum(rate(traces_spanmetrics_calls_total{service_name=~\"$service\", status_code=\"STATUS_CODE_ERROR\"}[5m]))", "legendFormat": "errors"}],
+          "fieldConfig": {"defaults": {"unit": "ops", "decimals": 2, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 0.01}]}}, "overrides": []}
+        },
+        {
+          "type": "stat",
+          "title": "Taxa de erro",
+          "gridPos": {"x": 12, "y": 0, "w": 6, "h": 4},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "100 * sum(rate(traces_spanmetrics_calls_total{service_name=~\"$service\", status_code=\"STATUS_CODE_ERROR\"}[5m])) / clamp_min(sum(rate(traces_spanmetrics_calls_total{service_name=~\"$service\"}[5m])), 0.001)", "legendFormat": "error %"}],
+          "fieldConfig": {"defaults": {"unit": "percent", "decimals": 2, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 1}, {"color": "red", "value": 5}]}}, "overrides": []}
+        },
+        {
+          "type": "stat",
+          "title": "Latência p95 geral",
+          "gridPos": {"x": 18, "y": 0, "w": 6, "h": 4},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_duration_milliseconds_bucket{service_name=~\"$service\"}[5m])))", "legendFormat": "p95"}],
+          "fieldConfig": {"defaults": {"unit": "ms", "decimals": 1, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "orange", "value": 250}, {"color": "red", "value": 750}]}}, "overrides": []}
+        },
+        {
+          "type": "timeseries",
+          "title": "Throughput por serviço",
+          "gridPos": {"x": 0, "y": 4, "w": 12, "h": 8},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "sum by (service_name) (rate(traces_spanmetrics_calls_total{service_name=~\"$service\"}[1m]))", "legendFormat": "{{service_name}}"}],
+          "fieldConfig": {"defaults": {"unit": "reqps", "decimals": 2}, "overrides": []}
+        },
+        {
+          "type": "timeseries",
+          "title": "Erros por serviço",
+          "gridPos": {"x": 12, "y": 4, "w": 12, "h": 8},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "sum by (service_name) (rate(traces_spanmetrics_calls_total{service_name=~\"$service\", status_code=\"STATUS_CODE_ERROR\"}[1m]))", "legendFormat": "{{service_name}}"}],
+          "fieldConfig": {"defaults": {"unit": "ops", "decimals": 2}, "overrides": []}
+        },
+        {
+          "type": "timeseries",
+          "title": "Latência p95 por serviço",
+          "gridPos": {"x": 0, "y": 12, "w": 12, "h": 8},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "histogram_quantile(0.95, sum by (service_name, le) (rate(traces_spanmetrics_duration_milliseconds_bucket{service_name=~\"$service\"}[5m])))", "legendFormat": "{{service_name}}"}],
+          "fieldConfig": {"defaults": {"unit": "ms", "decimals": 1}, "overrides": []}
+        },
+        {
+          "type": "timeseries",
+          "title": "Latência p50 por serviço",
+          "gridPos": {"x": 12, "y": 12, "w": 12, "h": 8},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "histogram_quantile(0.50, sum by (service_name, le) (rate(traces_spanmetrics_duration_milliseconds_bucket{service_name=~\"$service\"}[5m])))", "legendFormat": "{{service_name}}"}],
+          "fieldConfig": {"defaults": {"unit": "ms", "decimals": 1}, "overrides": []}
+        },
+        {
+          "type": "bargauge",
+          "title": "Top operações por volume",
+          "gridPos": {"x": 0, "y": 20, "w": 12, "h": 8},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "topk(10, sum by (service_name, span_name) (rate(traces_spanmetrics_calls_total{service_name=~\"$service\"}[5m])))", "legendFormat": "{{service_name}} / {{span_name}}"}],
+          "fieldConfig": {"defaults": {"unit": "reqps", "decimals": 2}, "overrides": []}
+        },
+        {
+          "type": "bargauge",
+          "title": "Operações mais lentas p95",
+          "gridPos": {"x": 12, "y": 20, "w": 12, "h": 8},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "topk(10, histogram_quantile(0.95, sum by (service_name, span_name, le) (rate(traces_spanmetrics_duration_milliseconds_bucket{service_name=~\"$service\"}[5m]))))", "legendFormat": "{{service_name}} / {{span_name}}"}],
+          "fieldConfig": {"defaults": {"unit": "ms", "decimals": 1}, "overrides": []}
+        },
+        {
+          "type": "timeseries",
+          "title": "Status HTTP por serviço",
+          "gridPos": {"x": 0, "y": 28, "w": 12, "h": 8},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "sum by (service_name, http_response_status_code) (rate(traces_spanmetrics_calls_total{service_name=~\"$service\", http_response_status_code!=\"\"}[1m]))", "legendFormat": "{{service_name}} HTTP {{http_response_status_code}}"}],
+          "fieldConfig": {"defaults": {"unit": "reqps", "decimals": 2}, "overrides": []}
+        },
+        {
+          "type": "timeseries",
+          "title": "Performance por produto",
+          "gridPos": {"x": 12, "y": 28, "w": 12, "h": 8},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "sum by (product_id) (rate(traces_spanmetrics_calls_total{product_id!=\"\"}[5m]))", "legendFormat": "{{product_id}}"}],
+          "fieldConfig": {"defaults": {"unit": "reqps", "decimals": 2}, "overrides": []}
+        },
+        {
+          "type": "bargauge",
+          "title": "Checkout por cenário",
+          "gridPos": {"x": 0, "y": 36, "w": 12, "h": 8},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "sum by (checkout_scenario) (rate(traces_spanmetrics_calls_total{checkout_scenario!=\"\"}[5m]))", "legendFormat": "{{checkout_scenario}}"}],
+          "fieldConfig": {"defaults": {"unit": "reqps", "decimals": 2}, "overrides": []}
+        },
+        {
+          "type": "timeseries",
+          "title": "Queries PostgreSQL observadas por spans",
+          "gridPos": {"x": 12, "y": 36, "w": 12, "h": 8},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "sum by (span_name, db_operation) (rate(traces_spanmetrics_calls_total{db_system=\"postgresql\"}[1m]))", "legendFormat": "{{span_name}} {{db_operation}}"}],
+          "fieldConfig": {"defaults": {"unit": "reqps", "decimals": 2}, "overrides": []}
+        },
+        {
+          "type": "timeseries",
+          "title": "Conexões PostgreSQL",
+          "gridPos": {"x": 0, "y": 44, "w": 24, "h": 8},
+          "targets": [{"datasource": {"uid": "mimir"}, "expr": "sum by (state) (pg_stat_activity_count)", "legendFormat": "{{state}}"}],
+          "fieldConfig": {"defaults": {"unit": "short", "decimals": 0}, "overrides": []}
+        }
+      ]
+    }
 ---
 apiVersion: v1
 kind: Service

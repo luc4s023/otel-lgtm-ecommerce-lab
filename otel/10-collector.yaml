@@ -75,6 +75,9 @@ data:
           - name: http.response.status_code
           - name: db.system
           - name: db.operation
+          - name: shop.name
+          - name: product.id
+          - name: checkout.scenario
         exemplars:
           enabled: true
         metrics_flush_interval: 15s
