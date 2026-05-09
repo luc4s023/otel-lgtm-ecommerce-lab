@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog
+  namespace: ecommerce
+spec:
+  selector:
+    app: catalog
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog
+  namespace: ecommerce
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog
+  template:
+    metadata:
+      labels:
+        app: catalog
+    spec:
+      containers:
+        - name: catalog
+          image: otel-lgtm/catalog:dev
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: otel-collector.observability.svc.cluster.local:4317
+            - name: DATABASE_URL
+              value: postgres://shop:shop@postgres.ecommerce.svc.cluster.local:5432/shop?sslmode=disable
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
